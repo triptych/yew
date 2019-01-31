@@ -1,6 +1,3 @@
-extern crate yew;
-extern crate minimal;
-
 use yew::prelude::*;
 use minimal::Model;
 

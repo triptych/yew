@@ -75,6 +75,8 @@ pub mod scheduler;
 pub mod agent;
 pub mod components;
 
+pub use self::prelude::*;
+
 use std::rc::Rc;
 use std::cell::RefCell;
 
