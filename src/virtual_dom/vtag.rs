@@ -1,5 +1,6 @@
 //! This module contains the implementation of a virtual element node `VTag`.
 
+use log::warn;
 use std::borrow::Cow;
 use std::cmp::PartialEq;
 use std::collections::HashSet;

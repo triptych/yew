@@ -2,6 +2,7 @@
 //! use local and session storage of a browser.
 
 use crate::format::Text;
+use failure::Fail;
 use stdweb::web::{window, Storage};
 
 /// Represents errors of a storage.

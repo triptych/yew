@@ -1,5 +1,7 @@
 //! Service to send HTTP-request to a server.
 
+use failure::Fail;
+use serde_derive::Serialize;
 use std::collections::HashMap;
 
 use stdweb::{Value, JsSerialize};

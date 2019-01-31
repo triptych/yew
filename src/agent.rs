@@ -1,9 +1,11 @@
 //! This module contains types to support multi-threading in Yew.
 
+use log::warn;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::marker::PhantomData;
 use serde::{Serialize, Deserialize};
+use serde_derive::{Serialize, Deserialize};
 use bincode;
 use anymap::{AnyMap, Entry};
 use slab::Slab;

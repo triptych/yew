@@ -253,6 +253,7 @@ macro_rules! impl_action {
     ($($action:ident($event:ident : $type:ident) -> $ret:ty => $convert:expr)*) => {$(
         /// An abstract implementation of a listener.
         pub mod $action {
+            use log::debug;
             use stdweb::web::{IEventTarget, Element};
             use stdweb::web::event::{IEvent, $type};
             use super::*;

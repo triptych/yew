@@ -1,5 +1,6 @@
 //! This module contains the implementation of a virtual text node `VText`.
 
+use log::warn;
 use std::cmp::PartialEq;
 use std::fmt;
 use std::marker::PhantomData;

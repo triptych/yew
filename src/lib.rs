@@ -60,27 +60,7 @@
 #![recursion_limit = "512"]
 
 #[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate log;
-extern crate http;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate bincode;
-extern crate anymap;
-extern crate slab;
-#[macro_use]
 extern crate stdweb;
-#[cfg(feature = "toml")]
-extern crate toml;
-#[cfg(feature = "yaml")]
-extern crate serde_yaml;
-#[cfg(feature = "msgpack")]
-extern crate rmp_serde;
-#[cfg(feature = "cbor")]
-extern crate serde_cbor;
 
 #[macro_use]
 pub mod macros;
