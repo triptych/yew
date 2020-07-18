@@ -1,25 +1,19 @@
 use log::info;
-use std::time::Duration;
 use serde_derive::{Deserialize, Serialize};
-use yew::worker::*;
-// TODO use yew::services::{IntervalService, FetchService, Task};
-use yew::services::Task;
+use std::time::Duration;
 use yew::services::interval::IntervalService;
-use yew::services::fetch::FetchService;
+use yew::services::Task;
+use yew::worker::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
     GetDataFromServer,
 }
 
-impl Transferable for Request { }
-
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     DataFetched,
 }
-
-impl Transferable for Response { }
 
 pub enum Msg {
     Updating,
@@ -27,27 +21,22 @@ pub enum Msg {
 
 pub struct Worker {
     link: AgentLink<Worker>,
-    interval: IntervalService,
-    task: Box<Task>,
-    fetch: FetchService,
+    _task: Box<dyn Task>,
 }
 
 impl Agent for Worker {
-    type Reach = Public;
+    type Reach = Public<Self>;
     type Message = Msg;
     type Input = Request;
     type Output = Response;
 
     fn create(link: AgentLink<Self>) -> Self {
-        let mut interval = IntervalService::new();
         let duration = Duration::from_secs(3);
-        let callback = link.send_back(|_| Msg::Updating);
-        let task = interval.spawn(duration, callback);
+        let callback = link.callback(|_| Msg::Updating);
+        let task = IntervalService::spawn(duration, callback);
         Worker {
             link,
-            interval,
-            task: Box::new(task),
-            fetch: FetchService::new(),
+            _task: Box::new(task),
         }
     }
 
@@ -59,14 +48,17 @@ impl Agent for Worker {
         }
     }
 
-    fn handle(&mut self, msg: Self::Input, who: HandlerId) {
+    fn handle_input(&mut self, msg: Self::Input, who: HandlerId) {
         info!("Request: {:?}", msg);
         match msg {
             Request::GetDataFromServer => {
-                self.link.response(who, Response::DataFetched);
+                // TODO fetch actual data
+                self.link.respond(who, Response::DataFetched);
             }
         }
     }
 
-    fn name_of_resource() -> &'static str { "bin/native_worker.js" }
+    fn name_of_resource() -> &'static str {
+        "worker.js"
+    }
 }

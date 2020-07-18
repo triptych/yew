@@ -1,25 +1,35 @@
-use stdweb::Value;
-use stdweb::unstable::TryInto;
+use js_sys::{Array, Reflect};
+use web_sys::console;
 
-#[derive(Default)]
-pub struct CcxtService(Option<Value>);
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
+
+pub struct CcxtService(&'static JsValue);
+
+#[wasm_bindgen]
+extern "C" {
+    static ccxt: JsValue;
+}
+
+impl Default for CcxtService {
+    fn default() -> CcxtService {
+        let lib: &JsValue = &ccxt;
+        CcxtService(lib)
+    }
+}
 
 impl CcxtService {
-    pub fn new() -> Self {
-        let lib = js! {
-            return ccxt;
-        };
-        CcxtService(Some(lib))
-    }
-
     pub fn exchanges(&mut self) -> Vec<String> {
-        let lib = self.0.as_ref().expect("ccxt library object lost");
-        let v: Value = js! {
-            var ccxt = @{lib};
-            console.log(ccxt.exchanges);
-            return ccxt.exchanges;
+        let v = {
+            let exchanges = Reflect::get(&self.0, &JsValue::from_str("exchanges")).unwrap();
+            console::log_1(&exchanges);
+            exchanges
         };
-        let v: Vec<String> = v.try_into().expect("can't extract exchanges");
+        let v: Vec<String> = Array::from(&v)
+            .to_vec()
+            .into_iter()
+            .map(|v| v.as_string().expect("can't extract exchanges"))
+            .collect();
         v
     }
 }

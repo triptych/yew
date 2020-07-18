@@ -1,38 +1,59 @@
-[package]
-name = "yew"
-version = "0.7.0"
-authors = ["Denis Kolodin <deniskolodin@gmail.com>"]
-repository = "https://github.com/DenisKolodin/yew"
-homepage = "https://github.com/DenisKolodin/yew"
-documentation = "https://docs.rs/yew/"
-license = "MIT/Apache-2.0"
-readme = "README.md"
-keywords = ["web", "asmjs", "webasm", "javascript"]
-categories = ["gui", "web-programming"]
-description = "A framework for making client-side single-page apps"
+[workspace]
+members = [
+  "yew",
+  "yew-components",
+  "yew-functional",
+  "yew-macro",
 
-[dependencies]
-failure = "0.1"
-log = "0.4"
-http = "0.1"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-bincode = "=1.0.1"
-anymap = "0.12"
-slab = "0.4"
-stdweb = "^0.4.14"
-toml = { version = "0.4", optional = true }
-serde_yaml = { version = "0.8.3", optional = true }
-rmp-serde = { version = "0.13.7", optional = true }
-serde_cbor = { version = "0.9.0", optional = true }
+  # Router
+  "yew-router",
+  "yew-router-macro",
+  "yew-router-route-parser",
+  "yew-router/examples/minimal",
+  "yew-router/examples/router_component",
+  "yew-router/examples/switch",
 
-[dev-dependencies]
-serde_derive = "1"
+  # Utilities
+  "yewtil",
+  "yewtil-macro",
+  "yewtil/examples/pure_component",
+  # "yewtil/examples/dsl",
+  "yewtil/examples/lrc",
+  "yewtil/examples/history",
+  "yewtil/examples/mrc_irc",
+  "yewtil/examples/effect",
+  "yewtil/examples/fetch",
+  "yewtil/examples/futures",
+  "yewtil/examples/function_component",
 
-[features]
-default = []
-web_test = []
-yaml = ["serde_yaml"]
-msgpack = ["rmp-serde"]
-cbor = ["serde_cbor"]
+  # dsl
+  "yew-dsl",
+
+  # Examples
+  "examples/counter",
+  "examples/crm",
+  "examples/custom_components",
+  "examples/dashboard",
+  "examples/file_upload",
+  "examples/fragments",
+  "examples/futures_wp",
+  "examples/game_of_life",
+  "examples/inner_html",
+  "examples/js_callback",
+  "examples/keyed_list",
+  "examples/large_table",
+  "examples/minimal_wp",
+  "examples/minimal",
+  "examples/mount_point",
+  "examples/multi_thread",
+  "examples/nested_list",
+  "examples/node_refs",
+  "examples/npm_and_rest",
+  "examples/pub_sub",
+  "examples/store",
+  "examples/textarea",
+  "examples/timer",
+  "examples/todomvc",
+  "examples/two_apps",
+  "examples/webgl",
+]

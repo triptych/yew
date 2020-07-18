@@ -1,4 +1,4 @@
-use failure::{format_err, Error};
+use anyhow::{anyhow, Error};
 use serde_derive::Deserialize;
 use yew::callback::Callback;
 use yew::format::{Json, Nothing};
@@ -20,17 +20,9 @@ pub struct Entry {
 }
 
 #[derive(Default)]
-pub struct GravatarService {
-    web: FetchService,
-}
+pub struct GravatarService {}
 
 impl GravatarService {
-    pub fn new() -> Self {
-        Self {
-            web: FetchService::new(),
-        }
-    }
-
     pub fn profile(&mut self, hash: &str, callback: Callback<Result<Profile, Error>>) -> FetchTask {
         let url = format!("https://en.gravatar.com/{}.json", hash);
         let handler = move |response: Response<Json<Result<Profile, Error>>>| {
@@ -38,14 +30,13 @@ impl GravatarService {
             if meta.status.is_success() {
                 callback.emit(data)
             } else {
-                // format_err! is a macro in crate `failure`
-                callback.emit(Err(format_err!(
+                callback.emit(Err(anyhow!(
                     "{}: error getting profile https://gravatar.com/",
                     meta.status
                 )))
             }
         };
         let request = Request::get(url.as_str()).body(Nothing).unwrap();
-        self.web.fetch(request, handler.into())
+        FetchService::fetch(request, handler.into()).unwrap()
     }
 }

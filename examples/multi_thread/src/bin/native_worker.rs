@@ -1,8 +1,6 @@
 use yew::agent::Threaded;
 
 fn main() {
-    web_logger::init();
-    yew::initialize();
+    wasm_logger::init(wasm_logger::Config::default());
     multi_thread::native_worker::Worker::register();
-    yew::run_loop();
 }

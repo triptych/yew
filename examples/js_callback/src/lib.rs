@@ -1,9 +1,8 @@
+#![recursion_limit = "128"]
 #![deny(warnings)]
 
-#[macro_use]
-extern crate stdweb;
-
-use yew::{html, Callback, Component, ComponentLink, Html, Renderable, ShouldRender};
+use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsValue};
+use yew::prelude::*;
 
 pub struct Model {
     payload: String,
@@ -17,16 +16,12 @@ pub enum Msg {
     AsyncPayload,
 }
 
-#[derive(Default, PartialEq, Eq, Clone)]
-pub struct Props {
-    payload: String,
-}
-
 impl Component for Model {
     type Message = Msg;
-    type Properties = Props;
+    type Properties = ();
 
-    fn create(Props { payload }: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let payload = String::default();
         let debugged_payload = format!("{:?}", payload);
         Self {
             payload,
@@ -38,43 +33,42 @@ impl Component for Model {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         use Msg::*;
         match msg {
-            Payload(payload) => self.change(Self::Properties { payload }),
+            Payload(payload) => {
+                if payload != self.payload {
+                    self.debugged_payload = format!("{:?}", payload);
+                    self.payload = payload;
+                    true
+                } else {
+                    false
+                }
+            }
             AsyncPayload => {
-                get_payload_later(self.link.send_back(Msg::Payload));
+                get_payload_later(self.link.callback(Msg::Payload));
                 false
             }
         }
     }
 
-    fn change(&mut self, Self::Properties { payload }: Self::Properties) -> ShouldRender {
-        if payload == self.payload {
-            false
-        } else {
-            self.debugged_payload = format!("{:?}", payload);
-            self.payload = payload;
-            true
-        }
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        false
     }
-}
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
+    fn view(&self) -> Html {
         html! {
             <div>
-                <textarea
-                    oninput=|input| Msg::Payload(input.value),
-                    style="font-family: 'Monaco', monospace;",
-                    value={ &self.payload },
-                ></textarea>
-                <button onclick=|_| Msg::Payload(get_payload()), >{
-                    "Get the payload!"
-                }</button>
-                <button onclick=|_| Msg::AsyncPayload, >{
-                    "Get the payload later!"
-                }</button>
-                <p style="font-family: 'Monaco', monospace;", >{
-                    nbsp(self.debugged_payload.as_ref())
-                }</p>
+                <textarea oninput=self.link.callback(move |input: InputData| Msg::Payload(input.value))
+                    style="font-family: 'Monaco' monospace;"
+                    value={ &self.payload }>
+                </textarea>
+                <button onclick=self.link.callback(|_| Msg::Payload(get_payload()))>
+                    { "Get the payload!" }
+                </button>
+                <button onclick=self.link.callback(|_| Msg::AsyncPayload) >
+                    { "Get the payload later!" }
+                </button>
+                <p style="font-family: 'Monaco', monospace;">
+                    { nbsp(self.debugged_payload.as_str()) }
+                </p>
             </div>
         }
     }
@@ -87,19 +81,18 @@ where
     String::from(string).replace(' ', "\u{00a0}")
 }
 
-fn get_payload() -> String {
-    (js! { return window.get_payload() }).into_string().unwrap()
+#[wasm_bindgen]
+extern "C" {
+    fn get_payload() -> String;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = "get_payload_later")]
+    fn get_payload_later_js(payload_callback: JsValue);
 }
 
 fn get_payload_later(payload_callback: Callback<String>) {
-    let callback = move |payload: String| payload_callback.emit(payload);
-    js! {
-        // Note: The semi-colons appear to be strictly necessary here due to
-        // how the interpolation is implemented
-        var callback = @{callback};
-        window.get_payload_later(function(payload) {
-            callback(payload);
-            callback.drop();
-        });
-    };
+    let callback = Closure::once_into_js(move |payload: String| payload_callback.emit(payload));
+    get_payload_later_js(callback);
 }

@@ -1,6 +1,9 @@
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+#![recursion_limit = "128"]
+
+use yew::{html, Component, ComponentLink, Html, InputData, ShouldRender};
 
 pub struct Model {
+    link: ComponentLink<Self>,
     value: String,
 }
 
@@ -13,8 +16,9 @@ impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         Model {
+            link,
             value: "".into(),
         }
     }
@@ -30,19 +34,21 @@ impl Component for Model {
         }
         true
     }
-}
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        false
+    }
+
+    fn view(&self) -> Html {
         html! {
             <div>
                 <div>
-                    <textarea rows=5,
-                        value=&self.value,
-                        oninput=|e| Msg::GotInput(e.value),
-                        placeholder="placeholder",>
+                    <textarea rows=5
+                        value=&self.value
+                        oninput=self.link.callback(|e: InputData| Msg::GotInput(e.value))
+                        placeholder="placeholder">
                     </textarea>
-                     <button onclick=|_| Msg::Clicked,>{ "change value" }</button>
+                    <button onclick=self.link.callback(|_| Msg::Clicked)>{ "change value" }</button>
                 </div>
                 <div>
                     {&self.value}

@@ -1,69 +1,25 @@
 #!/usr/bin/env bash
+set -euxo pipefail # https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 
-# Originally this ci script borrowed from https://github.com/koute/stdweb
-# because both use `cargo-web` tool to check the compilation.
+(cd yew \
+  && cargo test --target wasm32-unknown-unknown --features wasm_test \
+  && cargo test --doc --features doc_test,wasm_test,yaml,msgpack,cbor,toml \
+  && cargo test --doc --features doc_test,wasm_test,yaml,msgpack,cbor,toml \
+    --features std_web,agent,services --no-default-features)
 
-set -euo pipefail
-IFS=$'\n\t'
+(cd yew-functional && cargo test --target wasm32-unknown-unknown)
 
-set +e
-echo "$(rustc --version)" | grep -q "nightly"
-if [ "$?" = "0" ]; then
-    export IS_NIGHTLY=1
-else
-    export IS_NIGHTLY=0
-fi
-set -e
+(cd yew-macro \
+  && cargo test --test macro_test \
+  && cargo test --test derive_props_test \
+  && cargo test --doc)
 
-echo "Is Rust from nightly: $IS_NIGHTLY"
+(cd yew-router && cargo test)
+(cd yew-router-macro && cargo test)
+(cd yew-router-route-parser && cargo test)
 
-echo "Testing for asmjs-unknown-emscripten..."
-cargo web test --features web_test --target=asmjs-unknown-emscripten
+(cd yew-stdweb && cargo test --target wasm32-unknown-unknown --features wasm_test)
 
-echo "Testing for wasm32-unknown-emscripten..."
-cargo web test --features web_test --target=wasm32-unknown-emscripten
+(cd yewtil && cargo test)
 
-if [ "$IS_NIGHTLY" = "1" ]; then
-    echo "Testing for wasm32-unknown-unknown..."
-    cargo web test --nodejs --target=wasm32-unknown-unknown
-fi
-
-check_example() {
-    echo "Checking example [$2]"
-    pushd $2 > /dev/null
-    cargo web build --target=$1
-    popd > /dev/null
-
-    # TODO Can't build some demos with release, need fix
-    # cargo web build --release $CARGO_WEB_ARGS
-}
-
-check_all_examples() {
-    echo "Checking examples on $1..."
-    for EXAMPLE in $(pwd)/examples/showcase/sub/*; do
-        if [ "$1" == "wasm32-unknown-unknown" ]; then
-            # The counter example doesn't yet build here.
-            case $(basename $EXAMPLE) in
-                "counter")
-                continue
-                ;;
-                *)
-                ;;
-            esac
-        fi
-
-        if [ -d "$EXAMPLE" ]; then
-            check_example $1 $EXAMPLE
-        fi
-    done
-}
-
-# Check showcase only to speed up a building with CI
-# Showcase includes all other examples
-SHOWCASE=$(pwd)/examples/showcase
-check_example asmjs-unknown-emscripten $SHOWCASE
-check_example wasm32-unknown-emscripten $SHOWCASE
-
-if [ "$IS_NIGHTLY" = "1" ]; then
-    check_example wasm32-unknown-unknown $SHOWCASE
-fi
+(cd yew-components && cargo test)

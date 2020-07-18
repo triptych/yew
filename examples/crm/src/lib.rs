@@ -1,14 +1,15 @@
+#![recursion_limit = "256"]
+
 #[macro_use]
 extern crate serde_derive;
 
-mod markdown;
-
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+use common::markdown;
 use yew::format::Json;
-use yew::services::{DialogService, StorageService};
 use yew::services::storage::Area;
+use yew::services::{DialogService, StorageService};
+use yew::{html, Component, ComponentLink, Html, InputData, Renderable, ShouldRender};
 
-const KEY: &'static str = "yew.crm.database";
+const KEY: &str = "yew.crm.database";
 
 #[derive(Serialize, Deserialize)]
 struct Database {
@@ -19,7 +20,7 @@ struct Database {
 pub struct Client {
     first_name: String,
     last_name: String,
-    description: String
+    description: String,
 }
 
 impl Client {
@@ -27,7 +28,7 @@ impl Client {
         Client {
             first_name: "".into(),
             last_name: "".into(),
-            description: "".into()
+            description: "".into(),
         }
     }
 }
@@ -40,8 +41,8 @@ pub enum Scene {
 }
 
 pub struct Model {
+    link: ComponentLink<Self>,
     storage: StorageService,
-    dialog: DialogService,
     database: Database,
     scene: Scene,
 }
@@ -60,15 +61,15 @@ impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
-        let mut storage = StorageService::new(Area::Local);
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
         let Json(database) = storage.restore(KEY);
         let database = database.unwrap_or_else(|_| Database {
             clients: Vec::new(),
         });
         Model {
+            link,
             storage,
-            dialog: DialogService::new(),
             database,
             scene: Scene::ClientsList,
         }
@@ -77,148 +78,154 @@ impl Component for Model {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         let mut new_scene = None;
         match self.scene {
-            Scene::ClientsList => {
-                match msg {
-                    Msg::SwitchTo(Scene::NewClientForm(client)) => {
-                        new_scene = Some(Scene::NewClientForm(client));
-                    }
-                    Msg::SwitchTo(Scene::Settings) => {
-                        new_scene = Some(Scene::Settings);
-                    }
-                    unexpected => {
-                        panic!("Unexpected message when clients list shown: {:?}", unexpected);
+            Scene::ClientsList => match msg {
+                Msg::SwitchTo(Scene::NewClientForm(client)) => {
+                    new_scene = Some(Scene::NewClientForm(client));
+                }
+                Msg::SwitchTo(Scene::Settings) => {
+                    new_scene = Some(Scene::Settings);
+                }
+                unexpected => {
+                    panic!(
+                        "Unexpected message when clients list shown: {:?}",
+                        unexpected
+                    );
+                }
+            },
+            Scene::NewClientForm(ref mut client) => match msg {
+                Msg::UpdateFirstName(val) => {
+                    println!("Input: {}", val);
+                    client.first_name = val;
+                }
+                Msg::UpdateLastName(val) => {
+                    println!("Input: {}", val);
+                    client.last_name = val;
+                }
+                Msg::UpdateDescription(val) => {
+                    println!("Input: {}", val);
+                    client.description = val;
+                }
+                Msg::AddNew => {
+                    let mut new_client = Client::empty();
+                    ::std::mem::swap(client, &mut new_client);
+                    self.database.clients.push(new_client);
+                    self.storage.store(KEY, Json(&self.database));
+                }
+                Msg::SwitchTo(Scene::ClientsList) => {
+                    new_scene = Some(Scene::ClientsList);
+                }
+                unexpected => {
+                    panic!(
+                        "Unexpected message during new client editing: {:?}",
+                        unexpected
+                    );
+                }
+            },
+            Scene::Settings => match msg {
+                Msg::Clear => {
+                    let ok = { DialogService::confirm("Do you really want to clear the data?") };
+                    if ok {
+                        self.database.clients.clear();
+                        self.storage.remove(KEY);
                     }
                 }
-            }
-            Scene::NewClientForm(ref mut client) => {
-                match msg {
-                    Msg::UpdateFirstName(val) => {
-                        println!("Input: {}", val);
-                        client.first_name = val;
-                    }
-                    Msg::UpdateLastName(val) => {
-                        println!("Input: {}", val);
-                        client.last_name = val;
-                    }
-                    Msg::UpdateDescription(val) => {
-                        println!("Input: {}", val);
-                        client.description = val;
-                    }
-                    Msg::AddNew => {
-                        let mut new_client = Client::empty();
-                        ::std::mem::swap(client, &mut new_client);
-                        self.database.clients.push(new_client);
-                        self.storage.store(KEY, Json(&self.database));
-                    }
-                    Msg::SwitchTo(Scene::ClientsList) => {
-                        new_scene = Some(Scene::ClientsList);
-                    }
-                    unexpected => {
-                        panic!("Unexpected message during new client editing: {:?}", unexpected);
-                    }
+                Msg::SwitchTo(Scene::ClientsList) => {
+                    new_scene = Some(Scene::ClientsList);
                 }
-            }
-            Scene::Settings => {
-                match msg {
-                    Msg::Clear => {
-                        let ok = {
-                            self.dialog.confirm("Do you really want to clear the data?")
-                        };
-                        if ok {
-                            self.database.clients.clear();
-                            self.storage.remove(KEY);
-                        }
-                    }
-                    Msg::SwitchTo(Scene::ClientsList) => {
-                        new_scene = Some(Scene::ClientsList);
-                    }
-                    unexpected => {
-                        panic!("Unexpected message for settings scene: {:?}", unexpected);
-                    }
+                unexpected => {
+                    panic!("Unexpected message for settings scene: {:?}", unexpected);
                 }
-            }
+            },
         }
         if let Some(new_scene) = new_scene.take() {
             self.scene = new_scene;
         }
         true
     }
-}
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        false
+    }
+
+    fn view(&self) -> Html {
         match self.scene {
             Scene::ClientsList => html! {
-                <div class="crm",>
-                    <div class="clients",>
-                        { for self.database.clients.iter().map(Renderable::view) }
+                <div class="crm">
+                    <h1>{"List of clients"}</h1>
+                    <div class="clients">
+                        { for self.database.clients.iter().map(Renderable::render) }
                     </div>
-                    <button onclick=|_| Msg::SwitchTo(Scene::NewClientForm(Client::empty())),>{ "Add New" }</button>
-                    <button onclick=|_| Msg::SwitchTo(Scene::Settings),>{ "Settings" }</button>
+                    <button onclick=self.link.callback(|_| Msg::SwitchTo(Scene::NewClientForm(Client::empty())))>{ "Add New" }</button>
+                    <button onclick=self.link.callback(|_| Msg::SwitchTo(Scene::Settings))>{ "Settings" }</button>
                 </div>
             },
             Scene::NewClientForm(ref client) => html! {
-                <div class="crm",>
-                    <div class="names",>
-                        { client.view_first_name_input() }
-                        { client.view_last_name_input() }
-                        { client.view_description_textarea() }
+                <div class="crm">
+                    <h1>{"Add a new client"}</h1>
+                    <div class="names">
+                        <div>
+                            { client.view_first_name_input(&self.link) }
+                        </div>
+                        <div>
+                            { client.view_last_name_input(&self.link) }
+                        </div>
+                        <div>
+                            { client.view_description_textarea(&self.link) }
+                        </div>
                     </div>
-                    <button disabled=client.first_name.is_empty() || client.last_name.is_empty(),
-                            onclick=|_| Msg::AddNew,>{ "Add New" }</button>
-                    <button onclick=|_| Msg::SwitchTo(Scene::ClientsList),>{ "Go Back" }</button>
+                    <button disabled=client.first_name.is_empty() || client.last_name.is_empty()
+                            onclick=self.link.callback(|_| Msg::AddNew)>{ "Add New" }</button>
+                    <button onclick=self.link.callback(|_| Msg::SwitchTo(Scene::ClientsList))>{ "Go Back" }</button>
                 </div>
             },
             Scene::Settings => html! {
                 <div>
-                    <button onclick=|_| Msg::Clear,>{ "Clear Database" }</button>
-                    <button onclick=|_| Msg::SwitchTo(Scene::ClientsList),>{ "Go Back" }</button>
+                    <h1>{"Settings"}</h1>
+                    <button onclick=self.link.callback(|_| Msg::Clear)>{ "Clear Database" }</button>
+                    <button onclick=self.link.callback(|_| Msg::SwitchTo(Scene::ClientsList))>{ "Go Back" }</button>
                 </div>
             },
         }
     }
 }
 
-impl Renderable<Model> for Client {
-    fn view(&self) -> Html<Model> {
+impl Renderable for Client {
+    fn render(&self) -> Html {
         html! {
-            <div class="client",>
+            <div class="client" style="margin-bottom: 50px">
                 <p>{ format!("First Name: {}", self.first_name) }</p>
                 <p>{ format!("Last Name: {}", self.last_name) }</p>
-                <p>{ "Description:"}</p>
-                {markdown::render_markdown(&self.description)}
+                <p>{ "Description:" }</p>
+                { markdown::render_markdown(&self.description) }
             </div>
         }
     }
 }
 
 impl Client {
-    fn view_first_name_input(&self) -> Html<Model> {
+    fn view_first_name_input(&self, link: &ComponentLink<Model>) -> Html {
         html! {
-            <input class="new-client firstname",
-                   placeholder="First name",
-                   value=&self.first_name,
-                   oninput=|e| Msg::UpdateFirstName(e.value),
-                   />
+            <input class="new-client firstname"
+                   placeholder="First name"
+                   value=&self.first_name
+                   oninput=link.callback(|e: InputData| Msg::UpdateFirstName(e.value)) />
         }
     }
 
-    fn view_last_name_input(&self) -> Html<Model> {
+    fn view_last_name_input(&self, link: &ComponentLink<Model>) -> Html {
         html! {
-            <input class="new-client lastname",
-                   placeholder="Last name",
-                   value=&self.last_name,
-                   oninput=|e| Msg::UpdateLastName(e.value),
-                   />
+            <input class="new-client lastname"
+                   placeholder="Last name"
+                   value=&self.last_name
+                   oninput=link.callback(|e: InputData| Msg::UpdateLastName(e.value)) />
         }
     }
-    fn view_description_textarea(&self) -> Html<Model> {
+    fn view_description_textarea(&self, link: &ComponentLink<Model>) -> Html {
         html! {
-            <textarea class=("new-client", "description"),
-               placeholder="Description",
-               value=&self.description,
-               oninput=|e| Msg::UpdateDescription(e.value),
-               />
+            <textarea class=("new-client", "description")
+               placeholder="Description (can use Markdown)"
+               value=&self.description
+               oninput=link.callback(|e: InputData| Msg::UpdateDescription(e.value)) />
         }
     }
 }

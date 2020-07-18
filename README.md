@@ -1,453 +1,100 @@
-[![Build Status](https://api.travis-ci.org/DenisKolodin/yew.svg)](https://travis-ci.org/DenisKolodin/yew)
-[![Gitter chat](https://badges.gitter.im/yewframework.svg)](https://gitter.im/yewframework/Lobby "Gitter chat")
+<div align="center">
+  <img src="https://static.yew.rs/logo.svg" width="150" />
 
-# Yew
+  <h1>Yew</h1>
 
-**Yew** (pronounced `/juː/`, the same way as "you") is a modern Rust framework inspired by Elm and ReactJS for
-creating multi-threaded frontend apps with WebAssembly.
+  <p>
+    <strong>Rust / Wasm client web app framework</strong>
+  </p>
 
-The framework supports ***multi-threading & concurrency*** out of the box.
-It uses [Web Workers API] to spawn actors (agents) in separate threads
-and uses a local scheduler attached to a thread for concurrent tasks.
+  <p>
+    <a href="https://crates.io/crates/yew"><img alt="Crate Info" src="https://img.shields.io/crates/v/yew.svg"/></a>
+    <a href="https://docs.rs/yew/"><img alt="API Docs" src="https://img.shields.io/badge/docs.rs-yew-green"/></a>
+    <a href="https://discord.gg/VQck8X4"><img alt="Discord Chat" src="https://img.shields.io/discord/701068342760570933"/></a>
+    <a href="https://blog.rust-lang.org/2020/03/12/Rust-1.42.html"><img alt="Rustc Version 1.42+" src="https://img.shields.io/badge/rustc-1.42%2B-lightgrey.svg"/></a>
+    <a href="https://github.com/jetli/awesome-yew"><img alt="Yew Awesome" src="https://raw.githubusercontent.com/sindresorhus/awesome/master/media/badge.svg"/></a>
+  </p>
 
-[Web Workers API]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API
+  <h4>
+    <a href="https://yew.rs/docs">Documentation</a>
+    <span> | </span>
+    <a href="https://github.com/yewstack/yew/tree/v0.17/examples">Examples</a>
+    <span> | </span>
+    <a href="https://github.com/yewstack/yew/blob/master/CHANGELOG.md">Changelog</a>
+    <span> | </span>
+    <a href="https://yew.rs/docs/more/roadmap">Roadmap</a>
+    <span> | </span>
+    <a href="https://yew.rs/docs/v/zh_cn/">简体中文文档</a>
+    <span> | </span>
+    <a href="https://yew.rs/docs/v/zh_tw/">繁體中文文檔</a>
+  </h4>
+</div>
 
-[Become a sponsor on Patreon](https://www.patreon.com/deniskolodin)
+## About
 
-## Cutting Edge technologies
+**Yew** is a modern Rust framework for creating multi-threaded front-end web apps with WebAssembly.
 
-### Rust to WASM compilation
+* Features a macro for declaring interactive HTML with Rust expressions. Developers who have experience using JSX in React should feel quite at home when using Yew.
+* Achieves high performance by minimizing DOM API calls for each page render and by making it easy to offload processing to background web workers.
+* Supports JavaScript interoperability, allowing developers to leverage NPM packages and integrate with existing JavaScript applications.
 
-This framework is designed to be compiled into modern browsers' runtimes: wasm, asm.js, emscripten.
+*Note: Yew is not (yet) production ready but is great for side projects and internal tools.*
 
-To prepare the development environment use the installation instruction here: [wasm-and-rust](https://github.com/raphamorim/wasm-and-rust).
+## Contributing
 
-### Clean MVC approach inspired by Elm and Redux
+Yew is a community effort and we welcome all kinds of contributions, big or small, from developers of all backgrounds. We want the Yew community to be a fun and friendly place, so please review our [Code of Conduct](CODE_OF_CONDUCT.md) to learn what behavior will not be tolerated.
 
-Yew implements strict application state management based on message passing and updates:
+#### 🤓 New to Yew?
 
-`src/main.rs`
+Start learning about the framework by helping us improve our [Documentation](https://github.com/yewstack/docs). Pull requests which improve test coverage are also very welcome.
 
-```rust
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+#### 😎 Looking for inspiration?
 
-struct Model { }
+Check out the community curated list of awesome things related to Yew / WebAssembly at [jetli/awesome-yew](https://github.com/jetli/awesome-yew).
 
-enum Msg {
-    DoIt,
-}
+#### 🤔 Confused about something?
 
-impl Component for Model {
-    // Some details omitted. Explore the examples to see more.
+Feel free to drop into our [Discord chatroom](https://discord.gg/VQck8X4) or open a [new "Question" issue](https://github.com/yewstack/yew/issues/new/choose) to get help from contributors. Often questions lead to improvements to the ergonomics of the framework, better documentation, and even new features!
 
-    type Message = Msg;
-    type Properties = ();
+#### 🙂 Ready to dive into the code?
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
-        Model { }
-    }
-
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::DoIt => {
-                // Update your model on events
-                true
-            }
-        }
-    }
-}
-
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
-        html! {
-            // Render your model here
-            <button onclick=|_| Msg::DoIt,>{ "Click me!" }</button>
-        }
-    }
-}
-
-fn main() {
-    yew::start_app::<Model>();
-}
-```
-
-Predictable mutability and lifetimes (thanks Rust!) make it possible to reuse a single instance of the model
-without a need to create a fresh one on every update. It also helps to reduce memory allocations.
-
-### JSX-like templates with `html!` macro
-
-Feel free to put pure Rust code into HTML tags with all the compiler and borrow checker's benefits.
-
-```rust
-html! {
-    <section class="todoapp",>
-        <header class="header",>
-            <h1>{ "todos" }</h1>
-            { view_input(&model) }
-        </header>
-        <section class="main",>
-            <input class="toggle-all",
-                   type="checkbox",
-                   checked=model.is_all_completed(),
-                   onclick=|_| Msg::ToggleAll, />
-            { view_entries(&model) }
-        </section>
-    </section>
-}
-```
-
-### Agents - actors model inspired by Erlang and Actix
-
-Every `Component` can spawn an agent and attach to it.
-Agents are separate tasks that work concurrently.
-
-Create your worker/agent (in `context.rs` for example):
-
-```rust
-use yew::worker::*;
-
-struct Worker {
-    link: AgentLink<Worker>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Request {
-    Question(String),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Response {
-    Answer(String),
-}
-
-impl Agent for Worker {
-    // Available:
-    // - `Job` (one per bridge)
-    // - `Context` (shared in the same thread)
-    // - `Public` (separate thread).
-    type Reach = Context; // Spawn only one instance per thread (all components could reach this)
-    type Message = Msg;
-    type Input = Request;
-    type Output = Response;
-
-    // Create an instance with a link to agent's environment.
-    fn create(link: AgentLink<Self>) -> Self {
-        Worker { link }
-    }
-
-    // Handle inner messages (of services of `send_back` callbacks)
-    fn update(&mut self, msg: Self::Message) { /* ... */ }
-
-    // Handle incoming messages from components of other agents.
-    fn handle(&mut self, msg: Self::Input, who: HandlerId) {
-        match msg {
-            Request::Question(_) => {
-                self.link.response(who, Response::Answer("That's cool!".into()));
-            },
-        }
-    }
-}
-```
-
-Build the bridge to an instance of this agent.
-It spawns a worker automatically or reuses an existing one, depending on the type of the agent:
-
-```rust
-struct Model {
-    context: Box<Bridge<context::Worker>>,
-}
-
-enum Msg {
-    ContextMsg(context::Response),
-}
-
-impl Component for Model {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|_| Msg::ContextMsg);
-        // `Worker::bridge` spawns an instance if no one is available
-        let context = context::Worker::bridge(callback); // Connected! :tada:
-        Model { context }
-    }
-}
-```
-
-You can use as many agents as you want. For example you could separate all interactions
-with a server to a separate thread (a real OS thread because Web Workers map to the native threads).
-
-> **REMEMBER!** Not every API is available for every environment. For example you can't use
-`StorageService` from a separate thread. It won't work with `Public` agents,
-only with `Job` and `Context` ones.
-
-### Components
-
-Yew supports components! You could create a new one by implementing a `Component` trait
-and including it directly into the `html!` template:
-
-```rust
-html! {
-    <nav class="menu",>
-        <MyButton: title="First Button",/>
-        <MyButton: title="Second Button",/>
-    </nav>
-}
-```
-
-### Scopes
-
-Components live in an Angular-like scopes with **parent-to-child** *(properties)* and
-**child-to-parent** *(events)* interaction.
-
-Properties are also pure Rust types with strict type-checking during the compilation.
-
-```rust
-html! {
-    <nav class="menu",>
-        <MyButton: color=Color::Red,/>
-        <MyButton: onclick=|_| ParentMsg::DoIt,/>
-    </nav>
-}
-```
-
-### Fragments
-
-Yew supports fragments: elements without a parent which could be attached somewhere later.
-
-```rust
-html! {
-    <>
-        <tr><td>{ "Row" }</td></tr>
-        <tr><td>{ "Row" }</td></tr>
-        <tr><td>{ "Row" }</td></tr>
-    </>
-}
-```
-
-### Virtual DOM, independent loops, fine updates
-
-Yew uses its own **virtual-dom** implementation. It updates the browser's DOM
-with tiny patches when properties of elements have changed. Every component lives
-in its own independent loop interacting with the environment (`Scope`) through message passing
-and supports a fine control of rendering.
-
-The `ShouldRender` returns the value which informs the loop when the component should be re-rendered:
-
-```rust
-fn update(&mut self, msg: Self::Message) -> ShouldRender {
-    match msg {
-        Msg::UpdateValue(value) => {
-            self.value = value;
-            true
-        }
-        Msg::Ignore => {
-            false
-        }
-    }
-}
-```
-
-Using `ShouldRender` is more effective than comparing the model after every update because not every model
-change leads to a view update. It allows the framework to skip the model comparison checks entirely.
-This also allows you to control updates as precisely as possible.
-
-### Rust/JS/C-style comments in templates
-
-Use single-line or multi-line Rust comments inside html-templates.
-
-```rust
-html! {
-    <section>
-   /* Write some ideas
-    * in multiline comments
-    */
-    <p>{ "and tags can be placed between comments!" }</p>
-    // <li>{ "or single-line comments" }</li>
-    </section>
-}
-```
-
-### Third-party crates and pure Rust expressions inside
-
-Use external crates and put values from them into the template:
-
-```rust
-extern crate chrono;
-use chrono::prelude::*;
-
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
-        html! {
-            <p>{ Local::now() }</p>
-        }
-    }
-}
-```
-
-> Some crates don't support the true wasm target (`wasm32-unknown-unknown`) yet.
-
-### Services
-
-Yew has implemented pluggable services that allow you to call external APIs, such as:
-JavaScript alerts, timeout, storage, fetches and websockets.
-It's a handy alternative to subscriptions.
-
-Implemented:
-* `IntervalService`
-* `RenderService`
-* `TimeoutService`
-* `StorageService`
-* `DialogService`
-* `FetchService`
-* `WebSocketService`
-
-```rust
-use yew::services::{ConsoleService, TimeoutService};
-
-struct Model {
-    link: ComponentLink<Model>,
-    console: ConsoleService,
-    timeout: TimeoutService,
-}
-
-impl Component for Model {
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::Fire => {
-                let send_msg = self.link.send_back(|_| Msg::Timeout);
-                self.timeout.spawn(Duration::from_secs(5), send_msg);
-            }
-            Msg::Timeout => {
-                self.console.log("Timeout!");
-            }
-        }
-    }
-}
-```
-
-Can't find an essential service? Want to use a library from `npm`?
-You can reuse `JavaScript` libraries with `stdweb` capabilities and create
-your own service implementation. Here's an example below of how to wrap the
-[ccxt](https://www.npmjs.com/package/ccxt) library:
-
-```rust
-pub struct CcxtService(Option<Value>);
-
-impl CcxtService {
-    pub fn new() -> Self {
-        let lib = js! {
-            return ccxt;
-        };
-        CcxtService(Some(lib))
-    }
-
-    pub fn exchanges(&mut self) -> Vec<String> {
-        let lib = self.0.as_ref().expect("ccxt library object lost");
-        let v: Value = js! {
-            var ccxt = @{lib};
-            console.log(ccxt.exchanges);
-            return ccxt.exchanges;
-        };
-        let v: Vec<String> = v.try_into().expect("can't extract exchanges");
-        v
-    }
-
-    // Wrap more methods here!
-}
-```
-
-### Easy-to-use data conversion and destructuring
-
-Yew allows for serialization (store/send and restore/recieve) formats.
-
-Implemented: `JSON`, `TOML`, `YAML`, `MSGPACK`, `CBOR`.
-
-In development: `BSON`, `XML`.
-
-```rust
-use yew::format::Json;
-
-#[derive(Serialize, Deserialize)]
-struct Client {
-    first_name: String,
-    last_name: String,
-}
-
-struct Model {
-    local_storage: StorageService,
-    clients: Vec<Client>,
-}
-
-impl Component for Model {
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        Msg::Store => {
-            // Stores it, but in JSON format/layout
-            self.local_storage.store(KEY, Json(&model.clients));
-        }
-        Msg::Restore => {
-            // Tries to read and destructure it as JSON formatted data
-            if let Json(Ok(clients)) = self.local_storage.restore(KEY) {
-                model.clients = clients;
-            }
-        }
-    }
-}
-```
-
-Only `JSON` is available by default but you can activate the rest through features in
-your project's `Cargo.toml`:
-
-```toml
-[dependencies]
-yew = { git = "https://github.com/DenisKolodin/yew", features = ["toml", "yaml", "msgpack", "cbor"] }
-```
-
-## Development setup
-
-Clone or download this repository.
-
-To build this project you need to have [cargo-web] installed:
-
-    $ cargo install cargo-web
-
-> Add `--force` option to ensure you install the latest version.
-
-### Build
-
-    $ cargo web build
-
-### Running Tests
-
-    $ ./ci/run_tests.sh
-
-### Running the examples
-
-There are many examples that show how the framework works:
-[counter], [crm], [custom_components], [dashboard], [fragments],
-[game_of_life], [mount_point], [npm_and_rest], [timer], [todomvc], [two_apps].
-
-To start an example enter its directory and start it with [cargo-web]:
-
-    $ cargo web start
-
-To run an optimised build instead of a debug build use:
-
-    $ cargo web start --release
-
-This will use the `wasm32-unknown-unknown` target by default, which is Rust's native WebAssembly target.
-The Emscripten-based `wasm32-unknown-emscripten` and `asmjs-unknown-emscripten` targets are also supported
-if you tell the `cargo-web` to build for them using the `--target` parameter.
-
-[counter]: examples/counter
-[crm]: examples/crm
-[custom_components]: examples/custom_components
-[dashboard]: examples/dashboard
-[fragments]: examples/fragments
-[game_of_life]: examples/game_of_life
-[mount_point]: examples/mount_point
-[npm_and_rest]: examples/npm_and_rest
-[timer]: examples/timer
-[todomvc]: examples/todomvc
-[two_apps]: examples/two_apps
-[cargo-web]: https://github.com/koute/cargo-web
+After reviewing the [Contribution Guide](CONTRIBUTING.md), check out the ["Good First Issues"](https://github.com/yewstack/yew/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) (they are eager for attention!). Once you find one that interests you, feel free to assign yourself to an issue and don't hesitate to reach out for guidance, the issues vary in complexity.
+
+#### 🤑 Let's help each other!
+
+Come help us on the [issues that matter that the most](https://github.com/yewstack/yew/labels/%3Adollar%3A%20Funded%20on%20Issuehunt) and receive a small cash reward for your troubles. We use [Issuehunt](https://issuehunt.io/r/yewstack/yew/) to fund issues from our Open Collective funds. If you really care about an issue, you can choose to add funds yourself! 
+
+
+#### 😱 Found a bug?
+
+Please [report all bugs!](https://github.com/yewstack/yew/issues/new/choose) We are happy to help support developers fix the bugs they find if they are interested and have the time.
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute.
+<a href="https://github.com/yewstack/yew/graphs/contributors"><img src="https://opencollective.com/yew/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/yew/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/yew"><img src="https://opencollective.com/yew/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/yew/contribute)]
+
+<a href="https://opencollective.com/yew/organization/0/website"><img src="https://opencollective.com/yew/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/1/website"><img src="https://opencollective.com/yew/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/2/website"><img src="https://opencollective.com/yew/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/3/website"><img src="https://opencollective.com/yew/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/4/website"><img src="https://opencollective.com/yew/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/5/website"><img src="https://opencollective.com/yew/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/6/website"><img src="https://opencollective.com/yew/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/7/website"><img src="https://opencollective.com/yew/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/8/website"><img src="https://opencollective.com/yew/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/yew/organization/9/website"><img src="https://opencollective.com/yew/organization/9/avatar.svg"></a>

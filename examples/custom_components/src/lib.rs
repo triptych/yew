@@ -1,12 +1,15 @@
-mod counter;
-mod button;
-mod barrier;
+#![recursion_limit = "128"]
 
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
-use counter::{Counter, Color};
+mod barrier;
+mod button;
+mod counter;
+
 use barrier::Barrier;
+use counter::{Color, Counter};
+use yew::prelude::*;
 
 pub struct Model {
+    link: ComponentLink<Self>,
     with_barrier: bool,
     color: Color,
 }
@@ -17,13 +20,13 @@ pub enum Msg {
     ChildClicked(u32),
 }
 
-impl Component for Model
-{
+impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         Model {
+            link,
             with_barrier: false,
             color: Color::Red,
         }
@@ -39,21 +42,24 @@ impl Component for Model
                 self.with_barrier = !self.with_barrier;
                 true
             }
-            Msg::ChildClicked(_value) => {
-                false
-            }
+            Msg::ChildClicked(_value) => false,
         }
     }
-}
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
-        let counter = |x| html! {
-            <Counter: initial=x, color=&self.color, onclick=Msg::ChildClicked,/>
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        false
+    }
+
+    fn view(&self) -> Html {
+        let counter = |x| {
+            html! {
+                <Counter initial=x color=&self.color
+                    onclick=self.link.callback(Msg::ChildClicked) />
+            }
         };
         html! {
-            <div class="custom-components-example",>
-                <button onclick=|_| Msg::Toggle,>{ "Toggle" }</button>
+            <div class="custom-components-example">
+                <button onclick=self.link.callback(|_| Msg::Toggle)>{ "Toggle" }</button>
                 { self.view_barrier() }
                 { for (1..1001).map(counter) }
             </div>
@@ -62,10 +68,10 @@ impl Renderable<Model> for Model {
 }
 
 impl Model {
-    fn view_barrier(&self) -> Html<Self> {
+    fn view_barrier(&self) -> Html {
         if self.with_barrier {
             html! {
-                <Barrier: limit=10, onsignal=|_| Msg::Repaint, />
+                <Barrier limit=10 onsignal=self.link.callback(|_| Msg::Repaint) />
             }
         } else {
             html! {

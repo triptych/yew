@@ -5,5 +5,14 @@ authors = ["Garrett Berg <vitiral@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-stdweb = "0.4.2"
-yew = { path = "../.." }
+yew = { path = "../../yew" }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "console",
+  "Document",
+  "Element",
+  "Node",
+  "Window",
+]

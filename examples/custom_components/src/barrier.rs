@@ -1,38 +1,31 @@
 use crate::button::Button;
-use yew::{html, Callback, Component, ComponentLink, Html, Renderable, ShouldRender};
+use yew::prelude::*;
 
 pub struct Barrier {
+    link: ComponentLink<Self>,
     limit: u32,
     counter: u32,
-    onsignal: Option<Callback<()>>,
+    onsignal: Callback<()>,
 }
 
 pub enum Msg {
     ChildClicked,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone, PartialEq, Properties)]
 pub struct Props {
+    #[prop_or_default]
     pub limit: u32,
-    pub onsignal: Option<Callback<()>>,
+    pub onsignal: Callback<()>,
 }
-
-impl Default for Props {
-    fn default() -> Self {
-        Props {
-            limit: 0,
-            onsignal: None,
-        }
-    }
-}
-
 
 impl Component for Barrier {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, _: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Barrier {
+            link,
             limit: props.limit,
             counter: 0,
             onsignal: props.onsignal,
@@ -44,10 +37,8 @@ impl Component for Barrier {
             Msg::ChildClicked => {
                 self.counter += 1;
                 if self.counter >= self.limit {
-                    if let Some(ref mut callback) = self.onsignal {
-                        callback.emit(());
-                        self.counter = 0;
-                    }
+                    self.onsignal.emit(());
+                    self.counter = 0;
                 }
             }
         }
@@ -59,20 +50,18 @@ impl Component for Barrier {
         self.onsignal = props.onsignal;
         true
     }
-}
 
-impl Renderable<Barrier> for Barrier {
-    fn view(&self) -> Html<Self> {
+    fn view(&self) -> Html {
+        let onsignal = &self.link.callback(|_| Msg::ChildClicked);
         html! {
-            <div class="barrier",>
+            <div class="barrier">
                 <p>{ format!("{} on {} clicked", self.counter, self.limit) }</p>
-                <Button: onsignal=|_| Msg::ChildClicked, />
-                <Button: onsignal=|_| Msg::ChildClicked, />
-                <Button: onsignal=|_| Msg::ChildClicked, title="Middle", />
-                <Button: onsignal=|_| Msg::ChildClicked, />
-                <Button: onsignal=|_| Msg::ChildClicked, />
+                <Button onsignal=onsignal />
+                <Button onsignal=onsignal />
+                <Button onsignal=onsignal title="Middle" />
+                <Button onsignal=onsignal />
+                <Button onsignal=onsignal />
             </div>
         }
     }
 }
-

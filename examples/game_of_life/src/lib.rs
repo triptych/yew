@@ -1,10 +1,10 @@
-#![recursion_limit="128"]
+#![recursion_limit = "512"]
 
 use log::info;
-use std::time::Duration;
 use rand::Rng;
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+use std::time::Duration;
 use yew::services::{IntervalService, Task};
+use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
 #[derive(Clone, Copy, PartialEq)]
 enum LifeState {
@@ -14,16 +14,17 @@ enum LifeState {
 
 #[derive(Clone, Copy)]
 struct Cellule {
-    life_state: LifeState
+    life_state: LifeState,
 }
 
 pub struct Model {
+    link: ComponentLink<Self>,
     active: bool,
     cellules: Vec<Cellule>,
     cellules_width: usize,
     cellules_height: usize,
     #[allow(unused)]
-    job: Box<Task>,
+    job: Box<dyn Task>,
 }
 
 impl Cellule {
@@ -35,7 +36,7 @@ impl Cellule {
         self.life_state = LifeState::Dead;
     }
 
-    pub fn alive(&self) -> bool {
+    pub fn alive(self) -> bool {
         self.life_state == LifeState::Alive
     }
 
@@ -58,15 +59,14 @@ impl Cellule {
 
 fn wrap(coord: isize, range: isize) -> usize {
     let result = if coord < 0 {
-        (coord + range)
+        coord + range
     } else if coord >= range {
-        (coord - range)
+        coord - range
     } else {
         coord
     };
     result as usize
 }
-
 
 impl Model {
     pub fn random_mutate(&mut self) {
@@ -97,15 +97,17 @@ impl Model {
                     if Cellule::alone(&neighbors) || Cellule::overpopulated(&neighbors) {
                         to_dead.push(current_idx);
                     }
-                } else {
-                    if Cellule::can_be_revived(&neighbors) {
-                        to_live.push(current_idx);
-                    }
+                } else if Cellule::can_be_revived(&neighbors) {
+                    to_live.push(current_idx);
                 }
             }
         }
-        to_dead.iter().for_each(|idx| self.cellules[*idx].set_dead());
-        to_live.iter().for_each(|idx| self.cellules[*idx].set_alive());
+        to_dead
+            .iter()
+            .for_each(|idx| self.cellules[*idx].set_dead());
+        to_live
+            .iter()
+            .for_each(|idx| self.cellules[*idx].set_alive());
     }
 
     fn neighbors(&self, row: isize, col: isize) -> [Cellule; 8] {
@@ -152,16 +154,22 @@ impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|_| Msg::Tick);
-        let mut interval = IntervalService::new();
-        let handle = interval.spawn(Duration::from_millis(200), callback);
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let callback = link.callback(|_| Msg::Tick);
+        let handle = IntervalService::spawn(Duration::from_millis(200), callback);
+
         Model {
+            link,
             active: false,
-            cellules: vec![Cellule { life_state: LifeState::Dead }; 2000],
-            cellules_width: 50,
+            cellules: vec![
+                Cellule {
+                    life_state: LifeState::Dead
+                };
+                53 * 40
+            ],
+            cellules_width: 53,
             cellules_height: 40,
-            job : Box::new(handle),
+            job: Box::new(handle),
         }
     }
 
@@ -170,74 +178,83 @@ impl Component for Model {
             Msg::Random => {
                 self.random_mutate();
                 info!("Random");
-            },
+            }
             Msg::Start => {
                 self.active = true;
                 info!("Start");
-            },
+            }
             Msg::Step => {
                 self.step();
-            },
+            }
             Msg::Reset => {
                 self.reset();
                 info!("Reset");
-            },
+            }
             Msg::Stop => {
                 self.active = false;
                 info!("Stop");
-            },
+            }
             Msg::ToggleCellule(idx) => {
                 self.toggle_cellule(idx);
-            },
+            }
             Msg::Tick => {
                 if self.active {
                     self.step();
                 }
-            },
+            }
         }
         true
     }
-}
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        false
+    }
+
+    fn view(&self) -> Html {
         html! {
             <div>
-                <section class="game-container",>
-                    <header class="app-header",>
-                        <img src="favicon.ico", class="app-logo",/>
-                        <h1 class="app-title",>{ "Game of Life" }</h1>
+                <section class="game-container">
+                    <header class="app-header">
+                        <img src="favicon.ico" class="app-logo"/>
+                        <h1 class="app-title">{ "Game of Life" }</h1>
                     </header>
-                    <section class="game-area",>
-                        <div class="game-of-life",>
-                            { for self.cellules.iter().enumerate().map(view_cellule) }
+                    <section class="game-area">
+                        <div class="game-of-life">
+                            { for self.cellules.iter().enumerate().map(|c| self.view_cellule(c)) }
                         </div>
-                        <div class="game-buttons",>
-                            <button class="game-button", onclick=|_| Msg::Random,>{ "Random" }</button>
-                            <button class="game-button", onclick=|_| Msg::Step,>{ "Step" }</button>
-                            <button class="game-button", onclick=|_| Msg::Start,>{ "Start" }</button>
-                            <button class="game-button", onclick=|_| Msg::Stop,>{ "Stop" }</button>
-                            <button class="game-button", onclick=|_| Msg::Reset,>{ "Reset" }</button>
+                        <div class="game-buttons">
+                            <button class="game-button" onclick=self.link.callback(|_| Msg::Random)>{ "Random" }</button>
+                            <button class="game-button" onclick=self.link.callback(|_| Msg::Step)>{ "Step" }</button>
+                            <button class="game-button" onclick=self.link.callback(|_| Msg::Start)>{ "Start" }</button>
+                            <button class="game-button" onclick=self.link.callback(|_| Msg::Stop)>{ "Stop" }</button>
+                            <button class="game-button" onclick=self.link.callback(|_| Msg::Reset)>{ "Reset" }</button>
                         </div>
                     </section>
                 </section>
-                <footer class="app-footer",>
-                    <strong class="footer-text",>
+                <footer class="app-footer">
+                    <strong class="footer-text">
                       { "Game of Life - a yew experiment " }
                     </strong>
-                    <a href="https://github.com/DenisKolodin/yew", target="_blank",>{ "source" }</a>
+                    <a href="https://github.com/yewstack/yew" target="_blank">{ "source" }</a>
                 </footer>
             </div>
         }
     }
 }
 
-fn view_cellule((idx, cellule): (usize, &Cellule)) -> Html<Model> {
-    let cellule_status = {
-        if cellule.life_state == LifeState::Alive { "cellule-live" } else { "cellule-dead" }
-    };
-    html! {
-        <div class=("game-cellule", cellule_status),
-            onclick=|_| Msg::ToggleCellule(idx),> </div>
+impl Model {
+    fn view_cellule(&self, (idx, cellule): (usize, &Cellule)) -> Html {
+        let cellule_status = {
+            if cellule.life_state == LifeState::Alive {
+                "cellule-live"
+            } else {
+                "cellule-dead"
+            }
+        };
+        html! {
+            <div class=("game-cellule", cellule_status)
+                onclick=self.link.callback(move |_| Msg::ToggleCellule(idx))>
+            </div>
+        }
     }
 }
